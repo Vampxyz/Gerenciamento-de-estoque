@@ -1,4 +1,6 @@
 import uuid
+import mysql.connector
+from datetime import datetime
 
 # Gerenciamento de estoque 
 stock = [
@@ -32,16 +34,13 @@ def new_product():
     print(product)
 
 def list_product():
-    print('\n')
-    print('-------------------------------------------------------------------')
-    print('\n')
     for product in range(len(stock)):
+        print('\n')
+        print('-------------------------------------------------------------------')
+        print('\n')
 
         for key, value in stock[product].items():
             print(f"{key}: {value}")
-        print("\n")
-        print('-------------------------------------------------------------------')
-        print("\n")
 
 
 # def update_product():
@@ -68,12 +67,75 @@ class Product:
         self.price = price        
 
 class Sale:
-    def __init__(self, sale_id, product_id, quantity_sold, date_sale):
-        self.sale_id = sale_id
+    def __init__(self, product_id, quantity_sold, date_sale):
         self.product_id = product_id
         self.quantity_sold = quantity_sold
-        self.date_sale = date_sale
+        self.date_sale = datetime.now
 
 # new_product()
 # list_product()
 remove_product()
+
+# SQL
+
+class SalesSystem:
+    def __init__(self):
+        self.db = Database()
+
+    def add_product(self, product):
+        if not product.name or product.stock < 0 or product.price <= 0:
+            print("Invalid datas, try again!")
+            return None
+        
+        command = '''
+            INSERT INTO products(name, description, stock, price)
+            VALUES (%s, %s, %s, %s)
+        '''
+        datas = (product.name, product.description, product.stock, product.price)
+
+        self.db.cursor.execute(command, datas)
+        self.db.connection.commit()
+        new_id = self.db.cursor.lastrowid
+        print("Product added successfully")
+        return new_id
+
+class Database:
+    def __init__(self):
+        self.connection = mysql.connector.connect(
+            host = "localhost",
+            port = 3306,
+            user = "root",
+            password = "Aluno123",
+            database = "ge"
+        )
+        self.cursor = self.connection.cursor()
+        print("\nConnection with DB established!")
+        self.create_tables()
+
+    def create_tables(self):
+        command_create_product = '''
+            CREATE TABLE IF NOT EXISTS products (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                name VARCHAR(255) NOT NULL,
+                description TEXT,
+                stock INT NOT NULL,
+                price DECIMAL(10, 2) NOT NULL
+            )
+        '''
+        self.cursor.execute(command_create_product)
+
+        command_create_sales = '''
+            CREATE TABLE IF NOT EXISTS sales (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                product_id INT,
+                sale_quantity INT NOT NULL,
+                data_venda DATETIME NOT NULL,
+                FOREIGN KEY (product_id) REFERENCES products(id)
+            )
+        '''
+        self.cursor.execute(command_create_sales)
+        self.connection.commit()
+        print("Tables created succesfully")
+
+db = Database()
+
